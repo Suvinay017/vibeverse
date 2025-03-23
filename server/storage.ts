@@ -46,7 +46,22 @@ export class PostgresStorage implements IStorage {
   }
   
   async createUser(user: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(user).returning();
+    // Create a properly typed object for insertion
+    const insertData = {
+      username: user.username,
+      email: user.email,
+      password: user.password,
+      bio: user.bio || null,
+      avatarConfig: user.avatarConfig || null,
+      vibes: user.vibes || null,
+      spotifyId: null,
+      spotifyConnected: false,
+      spotifyToken: null,
+      spotifyRefreshToken: null
+    };
+    
+    // Use the correct method to insert a single object (not an array)
+    const result = await db.insert(users).values([insertData]).returning();
     return result[0];
   }
   
@@ -258,12 +273,34 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const now = new Date();
+    
+    // Create properly typed fields
+    const vibesArray = insertUser.vibes ? [...insertUser.vibes] : null;
+    const avatarConfig = insertUser.avatarConfig ? {
+      hairStyle: insertUser.avatarConfig.hairStyle,
+      hairColor: insertUser.avatarConfig.hairColor,
+      skinTone: insertUser.avatarConfig.skinTone,
+      eyeColor: insertUser.avatarConfig.eyeColor,
+      outfit: insertUser.avatarConfig.outfit,
+      accessories: insertUser.avatarConfig.accessories ? [...insertUser.avatarConfig.accessories] : []
+    } : null;
+    
+    // Create a fully typed user object
     const user: User = { 
-      ...insertUser, 
-      id, 
+      id,
+      username: insertUser.username,
+      email: insertUser.email,
+      password: insertUser.password,
+      bio: insertUser.bio || null,
+      avatarConfig,
+      vibes: vibesArray,
+      spotifyId: null,
       spotifyConnected: false,
+      spotifyToken: null,
+      spotifyRefreshToken: null,
       createdAt: now 
     };
+    
     this.users.set(id, user);
     return user;
   }
@@ -407,7 +444,16 @@ export class MemStorage implements IStorage {
     const match = this.matches.get(matchId);
     if (!match) return undefined;
     
-    const updatedMatch = {...match, status};
+    // Validate status is one of the allowed values
+    if (!["pending", "accepted", "rejected"].includes(status)) {
+      throw new Error("Invalid match status");
+    }
+    
+    const updatedMatch: Match = {
+      ...match,
+      status: status as "pending" | "accepted" | "rejected"
+    };
+    
     this.matches.set(matchId, updatedMatch);
     return updatedMatch;
   }
@@ -451,4 +497,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Create and export the storage implementation
+// Use PostgreSQL in production, MemStorage for development if needed
+export const storage = new PostgresStorage();

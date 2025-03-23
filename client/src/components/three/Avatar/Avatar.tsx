@@ -1,6 +1,7 @@
-import React, { useRef, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useRef, useEffect, useState, useLayoutEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { Text } from 'troika-three-text';
 import { useAudio } from '@/lib/stores/useAudio';
 import type { AvatarConfig } from '@shared/types';
 
@@ -171,7 +172,7 @@ export function Avatar({
               opacity={0.7}
             />
           </mesh>
-          <textRenderAPI
+          <Username 
             text={username}
             color="#ffffff"
             fontSize={0.15}
@@ -191,16 +192,37 @@ export function Avatar({
   );
 }
 
-// Simple text rendering API - in a real app, we'd use a proper text rendering solution
-// This is just a placeholder that would be replaced with something like troika-three-text
-function textRenderAPI({ text, color, fontSize, position }: any) {
-  return (
-    <group position={position}>
-      {/* This is a placeholder - in a real implementation we'd use proper text */}
-      <mesh scale={[text.length * fontSize * 0.5, fontSize, 0.01]}>
-        <planeGeometry />
-        <meshBasicMaterial color={color} transparent opacity={0} />
-      </mesh>
-    </group>
-  );
+interface UsernameProps {
+  text: string;
+  color: string;
+  fontSize: number;
+  position: [number, number, number];
+}
+
+function Username({ text, color, fontSize, position }: UsernameProps) {
+  const [textObj] = useState(() => new Text());
+  const { camera } = useThree();
+  
+  // Setup text properties
+  useLayoutEffect(() => {
+    textObj.text = text;
+    textObj.fontSize = fontSize;
+    textObj.color = color;
+    textObj.anchorX = 'center';
+    textObj.anchorY = 'middle';
+    textObj.position.set(position[0], position[1], position[2]);
+    textObj.material.depthTest = false;
+    textObj.strokeColor = '#000000';
+    textObj.strokeWidth = 0.01;
+    textObj.sync();
+  }, [textObj, text, color, fontSize, position]);
+
+  // Make text always face the camera
+  useFrame(() => {
+    if (textObj && camera) {
+      textObj.quaternion.copy(camera.quaternion);
+    }
+  });
+
+  return <primitive object={textObj} />;
 }

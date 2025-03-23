@@ -35,7 +35,7 @@ export const matches = pgTable("matches", {
   userId1: integer("user_id_1").notNull().references(() => users.id),
   userId2: integer("user_id_2").notNull().references(() => users.id),
   score: integer("score").notNull(),
-  status: text("status").notNull().default("pending"),
+  status: text("status", { enum: ["pending", "accepted", "rejected"] }).notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
