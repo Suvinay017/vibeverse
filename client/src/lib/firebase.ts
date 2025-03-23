@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { 
-  getAuth,
+  getAuth as getFirebaseAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
@@ -9,12 +9,15 @@ import {
 } from "firebase/auth";
 
 // Create placeholder values that will be filled during initialization
-let app: FirebaseApp;
-let auth: Auth;
-let googleProvider: GoogleAuthProvider;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
+let isInitialized = false;
 
 // Initialize Firebase with config from server
 async function initializeFirebase() {
+  if (isInitialized) return true;
+  
   try {
     const response = await fetch('/api/config/firebase');
     if (!response.ok) {
@@ -30,15 +33,18 @@ async function initializeFirebase() {
     
     // Initialize Firebase with the retrieved config
     app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
+    auth = getFirebaseAuth(app);
     googleProvider = new GoogleAuthProvider();
     
     // Set language and custom parameters
-    auth.languageCode = 'en';
-    googleProvider.setCustomParameters({
-      prompt: 'select_account'
-    });
+    if (auth) {
+      auth.languageCode = 'en';
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+    }
     
+    isInitialized = true;
     console.log('Firebase initialized successfully');
     return true;
   } catch (error) {
@@ -53,23 +59,29 @@ initializeFirebase().catch(err => {
 });
 
 // Safe getters for auth objects that ensure they are initialized
-const getAuth = () => {
+const getAuthInstance = async () => {
   if (!auth) {
-    throw new Error('Firebase auth not initialized. Wait for initialization to complete.');
+    await initializeFirebase();
+    if (!auth) {
+      throw new Error('Firebase auth not initialized. Wait for initialization to complete.');
+    }
   }
   return auth;
 };
 
-const getGoogleProvider = () => {
+const getGoogleProviderInstance = async () => {
   if (!googleProvider) {
-    throw new Error('Firebase Google provider not initialized. Wait for initialization to complete.');
+    await initializeFirebase();
+    if (!googleProvider) {
+      throw new Error('Firebase Google provider not initialized. Wait for initialization to complete.');
+    }
   }
   return googleProvider;
 };
 
 export { 
-  getAuth as auth, 
-  getGoogleProvider as googleProvider,
+  getAuthInstance as auth, 
+  getGoogleProviderInstance as googleProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,

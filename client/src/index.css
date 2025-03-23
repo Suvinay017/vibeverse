@@ -4,35 +4,46 @@
 
 @layer base {
   :root {
-    --background: 240 30% 6%;
+    /* NexusLink-inspired dark gaming theme */
+    --background: 232 35% 8%;
     --foreground: 210 40% 98%;
     
-    --card: 240 25% 10%;
+    --card: 232 35% 12%;
     --card-foreground: 210 40% 98%;
     
-    --popover: 240 25% 8%;
+    --popover: 232 35% 10%;
     --popover-foreground: 210 40% 98%;
     
-    --primary: 252 100% 68%;
+    /* Cyan/teal highlight color for primary actions */
+    --primary: 180 100% 50%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 217 92% 76%;
-    --secondary-foreground: 240 25% 10%;
+    /* Purple for secondary elements */
+    --secondary: 270 100% 65%;
+    --secondary-foreground: 0 0% 100%;
     
-    --muted: 240 25% 15%;
+    --muted: 232 35% 15%;
     --muted-foreground: 240 5% 75%;
     
-    --accent: 301 94% 72%;
+    /* Pink accent color */
+    --accent: 324 100% 65%;
     --accent-foreground: 0 0% 100%;
     
     --destructive: 0 90% 60%;
     --destructive-foreground: 210 40% 98%;
     
-    --border: 240 25% 20%;
-    --input: 240 25% 20%;
-    --ring: 252 100% 68%;
+    --border: 232 35% 18%;
+    --input: 232 35% 20%;
+    --ring: 180 100% 50%;
     
     --radius: 0.5rem;
+    
+    /* Chart colors for visualizations */
+    --chart-1: 180 100% 50%;
+    --chart-2: 270 100% 65%;
+    --chart-3: 324 100% 65%;
+    --chart-4: 42 100% 60%;
+    --chart-5: 146 100% 50%;
   }
 
   * {
@@ -46,9 +57,13 @@
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    /* Grid background with subtle gradients in the style of NexusLink */
     background-image: 
-      radial-gradient(circle at 20% 35%, rgba(76, 0, 255, 0.15) 0%, transparent 50%),
-      radial-gradient(circle at 75% 65%, rgba(201, 0, 255, 0.15) 0%, transparent 50%);
+      linear-gradient(to right, hsla(232, 40%, 10%, 0.8) 1px, transparent 1px),
+      linear-gradient(to bottom, hsla(232, 40%, 10%, 0.8) 1px, transparent 1px),
+      radial-gradient(circle at 15% 25%, rgba(76, 0, 255, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 85% 75%, rgba(255, 0, 170, 0.15) 0%, transparent 40%);
+    background-size: 30px 30px, 30px 30px, 100% 100%, 100% 100%;
     background-attachment: fixed;
   }
 }
