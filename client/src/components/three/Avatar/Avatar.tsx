@@ -77,11 +77,13 @@ export function Avatar({
     }
     
     // Update position and rotation
-    groupRef.current.position.set(...position);
-    groupRef.current.rotation.set(...rotation);
+    groupRef.current.position.set(position[0], position[1], position[2]);
+    groupRef.current.rotation.set(rotation[0], rotation[1], rotation[2]);
     
     // Store current position for next frame
-    lastPosition.current.copy(currentPosition);
+    lastPosition.current.x = currentPosition.x;
+    lastPosition.current.y = currentPosition.y;
+    lastPosition.current.z = currentPosition.z;
   });
 
   return (
@@ -200,29 +202,41 @@ interface UsernameProps {
 }
 
 function Username({ text, color, fontSize, position }: UsernameProps) {
-  const [textObj] = useState(() => new Text());
+  const ref = useRef<THREE.Group>(null);
   const { camera } = useThree();
   
-  // Setup text properties
-  useLayoutEffect(() => {
+  // Initialize text properties
+  const [textObj] = useState(() => {
+    const obj = new Text();
+    obj.text = text;
+    obj.fontSize = fontSize;
+    obj.color = color;
+    obj.anchorX = 'center';
+    obj.anchorY = 'middle';
+    obj.material.depthTest = false;
+    obj.strokeColor = '#000000';
+    obj.strokeWidth = 0.01;
+    return obj;
+  });
+  
+  // Update text properties when props change
+  useEffect(() => {
     textObj.text = text;
     textObj.fontSize = fontSize;
     textObj.color = color;
-    textObj.anchorX = 'center';
-    textObj.anchorY = 'middle';
-    textObj.position.set(position[0], position[1], position[2]);
-    textObj.material.depthTest = false;
-    textObj.strokeColor = '#000000';
-    textObj.strokeWidth = 0.01;
     textObj.sync();
-  }, [textObj, text, color, fontSize, position]);
-
+  }, [textObj, text, color, fontSize]);
+  
   // Make text always face the camera
   useFrame(() => {
-    if (textObj && camera) {
-      textObj.quaternion.copy(camera.quaternion);
+    if (ref.current && camera) {
+      ref.current.quaternion.copy(camera.quaternion);
     }
   });
 
-  return <primitive object={textObj} />;
+  return (
+    <group ref={ref} position={position}>
+      <primitive object={textObj} />
+    </group>
+  );
 }
