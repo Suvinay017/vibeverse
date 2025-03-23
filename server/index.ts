@@ -1,10 +1,33 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { testConnection } from "./database";
+import session from "express-session";
+import pg from "pg";
+import connectPgSimple from "connect-pg-simple";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Initialize session with PostgreSQL
+const PgSession = connectPgSimple(session);
+app.use(session({
+  store: new PgSession({
+    conObject: {
+      connectionString: process.env.DATABASE_URL
+    },
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET || "your-session-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,6 +60,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Test database connection
+  await testConnection();
+  
+  // Register routes
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

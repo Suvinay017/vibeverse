@@ -3,6 +3,38 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 240 30% 6%;
+    --foreground: 210 40% 98%;
+    
+    --card: 240 25% 10%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 240 25% 8%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 252 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 217 92% 76%;
+    --secondary-foreground: 240 25% 10%;
+    
+    --muted: 240 25% 15%;
+    --muted-foreground: 240 5% 75%;
+    
+    --accent: 301 94% 72%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 90% 60%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 240 25% 20%;
+    --input: 240 25% 20%;
+    --ring: 252 100% 68%;
+    
+    --radius: 0.5rem;
+  }
+
   * {
     @apply border-border;
   }
@@ -14,6 +46,10 @@
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    background-image: 
+      radial-gradient(circle at 20% 35%, rgba(76, 0, 255, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 75% 65%, rgba(201, 0, 255, 0.15) 0%, transparent 50%);
+    background-attachment: fixed;
   }
 }
 

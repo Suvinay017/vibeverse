@@ -1,31 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
-import session from "express-session";
-import MemoryStore from "memorystore";
 import { storage } from "./storage";
 import authRoutes from "./auth";
 import spotifyRoutes from "./spotify";
 import { z } from "zod";
 
-const SessionStore = MemoryStore(session);
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up sessions
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "vibeverse_secret",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      },
-      store: new SessionStore({
-        checkPeriod: 86400000, // 24 hours
-      }),
-    })
-  );
+  // Sessions are now configured in index.ts
 
   // API routes
   const apiRouter = express.Router();
