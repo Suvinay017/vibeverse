@@ -415,7 +415,7 @@ export default function Home() {
       </div>
       
       {/* Add some animation keyframes to the stylesheet */}
-      <style jsx>{`
+      <style>{`
         @keyframes twinkle {
           0% { opacity: 0.2; }
           100% { opacity: 0.8; }
