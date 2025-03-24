@@ -9,7 +9,7 @@ const router = express.Router();
 // This would be your Spotify Client ID and Secret from the Spotify Developer Dashboard
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
-const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:5000/api/spotify/callback';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://0.0.0.0:5000/api/spotify/callback';
 
 // Mock data for development (in a real app, we'd actually call the Spotify API)
 const MOCK_TOP_TRACKS: SpotifyTrack[] = [
