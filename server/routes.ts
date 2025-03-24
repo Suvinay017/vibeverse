@@ -204,6 +204,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Firebase config endpoint
   apiRouter.get("/config/firebase", (req, res) => {
+    console.log("Sending Firebase configuration to client, keys available:", 
+      Object.keys(process.env)
+        .filter(key => key.startsWith('FIREBASE_'))
+        .join(', ')
+    );
+    
     const firebaseConfig = {
       apiKey: process.env.FIREBASE_API_KEY,
       authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -213,6 +219,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       appId: process.env.FIREBASE_APP_ID,
       measurementId: process.env.FIREBASE_MEASUREMENT_ID
     };
+    
+    // Check if we have the required values
+    const requiredKeys = ['apiKey', 'authDomain', 'projectId'];
+    const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
+    
+    if (missingKeys.length > 0) {
+      console.warn(`Missing required Firebase config keys: ${missingKeys.join(', ')}`);
+    } else {
+      console.log("All required Firebase configuration keys are present");
+    }
+    
+    // Redact the values for logging
+    const redactedConfig = Object.fromEntries(
+      Object.entries(firebaseConfig).map(([key, value]) => 
+        [key, value ? `${value.substring(0, 5)}...` : 'undefined']
+      )
+    );
+    console.log("Firebase config (redacted):", redactedConfig);
     
     res.json(firebaseConfig);
   });

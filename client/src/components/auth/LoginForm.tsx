@@ -47,10 +47,14 @@ export default function LoginForm() {
   
   const handleGoogleLogin = async () => {
     try {
+      clearError(); // Clear any previous errors
+      console.log("Initiating Google login process...");
       await loginWithGoogle();
+      console.log("Google login successful, redirecting to home page");
       setLocation("/");
     } catch (error) {
       console.error("Google login failed:", error);
+      // Error is already set in the auth store
     }
   };
 

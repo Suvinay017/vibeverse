@@ -1,56 +1,78 @@
-import { initializeApp, FirebaseApp } from "firebase/app";
+import { initializeApp } from "firebase/app";
 import { 
-  getAuth as getFirebaseAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  Auth
+  getAuth,
+  signInWithEmailAndPassword as firebaseSignInWithEmail,
+  createUserWithEmailAndPassword as firebaseCreateUser,
+  signInWithPopup as firebaseSignInWithPopup,
+  GoogleAuthProvider
 } from "firebase/auth";
 
-// Create placeholder values that will be filled during initialization
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let googleProvider: GoogleAuthProvider | null = null;
+// Declare a variable to track initialization status
 let isInitialized = false;
+
+// Create a Google Auth Provider instance
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+// Declare a variable to hold the Firebase app and auth instances
+let firebaseApp: any;
+let firebaseAuth: any;
 
 // Initialize Firebase with config from server
 async function initializeFirebase() {
-  if (isInitialized) return true;
+  if (isInitialized) return { auth: firebaseAuth, provider: googleProvider };
   
   try {
+    console.log('Fetching Firebase configuration...');
     const response = await fetch('/api/config/firebase');
+    
     if (!response.ok) {
       throw new Error(`Failed to fetch Firebase config: ${response.statusText}`);
     }
     
     const firebaseConfig = await response.json();
+    console.log('Firebase config received:', Object.keys(firebaseConfig).join(', '));
     
-    // Verify we have the required fields
+    // Check if config has required fields
     if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
+      console.error('Firebase configuration is incomplete:', firebaseConfig);
       throw new Error('Firebase configuration is incomplete');
     }
     
-    // Initialize Firebase with the retrieved config
-    app = initializeApp(firebaseConfig);
-    auth = getFirebaseAuth(app);
-    googleProvider = new GoogleAuthProvider();
+    // Initialize Firebase
+    firebaseApp = initializeApp(firebaseConfig);
+    firebaseAuth = getAuth(firebaseApp);
     
-    // Set language and custom parameters
-    if (auth) {
-      auth.languageCode = 'en';
-      googleProvider.setCustomParameters({
-        prompt: 'select_account'
-      });
+    if (firebaseAuth) {
+      firebaseAuth.languageCode = 'en';
+      console.log('Firebase Auth initialized successfully');
+      isInitialized = true;
+      return { auth: firebaseAuth, provider: googleProvider };
+    } else {
+      throw new Error('Firebase Auth initialization failed');
     }
-    
-    isInitialized = true;
-    console.log('Firebase initialized successfully');
-    return true;
   } catch (error) {
     console.error('Error initializing Firebase:', error);
-    return false;
+    throw error;
   }
+}
+
+// Wrapped authentication functions that ensure Firebase is initialized
+async function signInWithEmailAndPassword(auth: any, email: string, password: string) {
+  const { auth: firebaseAuth } = await initializeFirebase();
+  return firebaseSignInWithEmail(firebaseAuth, email, password);
+}
+
+async function createUserWithEmailAndPassword(auth: any, email: string, password: string) {
+  const { auth: firebaseAuth } = await initializeFirebase();
+  return firebaseCreateUser(firebaseAuth, email, password);
+}
+
+async function signInWithPopup(auth: any, provider: any) {
+  const { auth: firebaseAuth, provider: googleProviderInstance } = await initializeFirebase();
+  return firebaseSignInWithPopup(firebaseAuth, googleProviderInstance);
 }
 
 // Initialize Firebase when the module is loaded
@@ -58,32 +80,24 @@ initializeFirebase().catch(err => {
   console.error('Failed to initialize Firebase:', err);
 });
 
-// Safe getters for auth objects that ensure they are initialized
-const getAuthInstance = async () => {
-  if (!auth) {
-    await initializeFirebase();
-    if (!auth) {
-      throw new Error('Firebase auth not initialized. Wait for initialization to complete.');
-    }
-  }
-  return auth;
-};
-
-const getGoogleProviderInstance = async () => {
-  if (!googleProvider) {
-    await initializeFirebase();
-    if (!googleProvider) {
-      throw new Error('Firebase Google provider not initialized. Wait for initialization to complete.');
-    }
-  }
-  return googleProvider;
-};
-
+// Export the auth object and authentication functions
 export { 
-  getAuthInstance as auth, 
-  getGoogleProviderInstance as googleProvider,
+  initializeFirebase,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
-  initializeFirebase
+  googleProvider
+};
+
+// Export a getter for the auth object
+export const auth = {
+  signOut: async () => {
+    try {
+      const { auth: firebaseAuth } = await initializeFirebase();
+      return firebaseAuth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
+  }
 };
