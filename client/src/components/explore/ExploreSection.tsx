@@ -72,12 +72,16 @@ function EnvironmentCard({ environment, activeUsers }: EnvironmentCardProps) {
       </CardContent>
       
       <CardFooter>
-        <Link href={`/date/${environment.id}`}>
-          <Button className="w-full">
-            Enter
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Link>
+        <Button 
+          className="w-full" 
+          onClick={() => {
+            console.log(`Navigating to environment: ${environment.id}`);
+            window.location.href = `/date/${environment.id}`;
+          }}
+        >
+          Enter
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
       </CardFooter>
     </Card>
   );

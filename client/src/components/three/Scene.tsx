@@ -159,19 +159,27 @@ function PlayerController({ updatePosition, updateRotation }: PlayerControllerPr
     const left = keyboard.leftward ? 1 : 0;
     const right = keyboard.rightward ? 1 : 0;
     
-    // Direction vector
-    direction.current.z = forward - backward;
-    direction.current.x = left - right;
-    direction.current.normalize();
+    // Direction vector - corrected to match standard 3D controls
+    direction.current.z = backward - forward; // Inverted for standard control feel
+    direction.current.x = right - left;       // Inverted for standard control feel
+    
+    if (direction.current.z !== 0 || direction.current.x !== 0) {
+      direction.current.normalize();
+    }
     
     // Calculate velocity based on direction
     const moveSpeed = 5;
     velocity.current.z = direction.current.z * moveSpeed * delta;
     velocity.current.x = direction.current.x * moveSpeed * delta;
     
-    // Move the camera
-    controls.current.moveForward(-velocity.current.z);
-    controls.current.moveRight(-velocity.current.x);
+    // Move the camera - we no longer need to negate these values
+    controls.current.moveForward(velocity.current.z);
+    controls.current.moveRight(velocity.current.x);
+    
+    // Log movement for debugging
+    if (velocity.current.z !== 0 || velocity.current.x !== 0) {
+      console.log(`Moving: z=${velocity.current.z.toFixed(2)}, x=${velocity.current.x.toFixed(2)}`);
+    }
     
     // Update position and rotation in the store
     const position: [number, number, number] = [

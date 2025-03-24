@@ -41,6 +41,11 @@ export function Avatar({
   const hairColor = config?.hairColor || '#3d2314';
   const outfitColor = color;
   
+  useEffect(() => {
+    // Log when avatar is created or updated
+    console.log(`Avatar created/updated: ${username}, position: [${position.join(', ')}], isCurrentUser: ${isCurrentUser}`);
+  }, [username, position, isCurrentUser]);
+
   useFrame((_, delta) => {
     if (!groupRef.current) return;
     
@@ -77,8 +82,17 @@ export function Avatar({
     }
     
     // Update position and rotation
-    groupRef.current.position.set(position[0], position[1], position[2]);
-    groupRef.current.rotation.set(rotation[0], rotation[1], rotation[2]);
+    // Make sure the avatar is properly positioned, even if the avatar is the current user
+    if (groupRef.current) {
+      groupRef.current.position.set(position[0], position[1], position[2]);
+      
+      // For current user, we don't need to match the camera rotation on the Y axis (prevents spinning)
+      if (isCurrentUser) {
+        groupRef.current.rotation.set(0, rotation[1], 0);
+      } else {
+        groupRef.current.rotation.set(rotation[0], rotation[1], rotation[2]);
+      }
+    }
     
     // Store current position for next frame
     lastPosition.current.x = currentPosition.x;
