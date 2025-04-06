@@ -1,32 +1,38 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  auth, 
-  googleProvider, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  auth,
+  googleProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signInWithPopup,
   initializeFirebase
 } from '../firebase';
 import { apiRequest } from '../queryClient';
 import type { User } from '@shared/types';
+import { getAuth, onAuthStateChanged } from 'firebase/auth'; // ✅ Added import
 
 interface AuthState {
   user: User | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Firebase auth methods
   loginWithEmail: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   signup: (email: string, username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  
+
   // Server auth methods
   loginWithServer: (username: string, password: string) => Promise<void>;
-  signupWithServer: (username: string, email: string, password: string, confirmPassword: string) => Promise<void>;
+  signupWithServer: (
+    username: string,
+    email: string,
+    password: string,
+    confirmPassword: string
+  ) => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
-  
+
   clearError: () => void;
 }
 
@@ -36,16 +42,13 @@ export const useAuth = create<AuthState>()(
       user: null,
       isLoading: false,
       error: null,
-      
-      // Firebase auth methods
+
       loginWithEmail: async (email, password) => {
         set({ isLoading: true, error: null });
         try {
           console.log('Attempting to sign in with email...');
           await signInWithEmailAndPassword(null, email, password);
           console.log('Firebase email login successful, now calling server login...');
-          
-          // After Firebase auth, call server to login and get user data
           await get().loginWithServer(email, password);
         } catch (error: any) {
           console.error('Login with email failed:', error);
@@ -54,41 +57,34 @@ export const useAuth = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      
+
       loginWithGoogle: async () => {
         set({ isLoading: true, error: null });
         try {
           console.log('Initializing Firebase before Google sign-in...');
-          
-          // Initialize Firebase and get the auth instance
           await initializeFirebase();
-          
+
           console.log('Attempting to sign in with Google...');
           const result = await signInWithPopup(null, googleProvider);
           console.log('Google sign-in successful, processing user info...');
-          
+
           const user = result.user;
-          
-          // After Google login, we need to either login or register on our server
           const email = user.email;
           const username = user.displayName || email?.split('@')[0] || 'user';
-          
+
           console.log('Attempting server login with Google credentials...');
-          
-          // Try to login first, if it fails, sign up
           try {
-            await get().loginWithServer(username, 'firebase-auth'); // Special password for firebase auth
+            await get().loginWithServer(username, 'firebase-auth');
           } catch (error) {
             console.log('Server login failed, attempting registration...');
-            // If login fails, try to register
             await get().signupWithServer(
-              username, 
-              email || `${username}@example.com`, 
-              'firebase-auth', 
+              username,
+              email || `${username}@example.com`,
+              'firebase-auth',
               'firebase-auth'
             );
           }
-          
+
           console.log('Google authentication process completed');
         } catch (error: any) {
           console.error('Login with Google failed:', error);
@@ -97,15 +93,13 @@ export const useAuth = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      
+
       signup: async (email, username, password) => {
         set({ isLoading: true, error: null });
         try {
           console.log('Creating user with Firebase...');
           await createUserWithEmailAndPassword(null, email, password);
           console.log('Firebase user created, registering with server...');
-          
-          // After Firebase auth, call server to register and get user data
           await get().signupWithServer(username, email, password, password);
         } catch (error: any) {
           console.error('Signup failed:', error);
@@ -114,15 +108,13 @@ export const useAuth = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      
+
       logout: async () => {
         set({ isLoading: true, error: null });
         try {
           console.log('Signing out from Firebase...');
           await auth.signOut();
           console.log('Firebase sign out successful, logging out from server...');
-          
-          // Also logout from the server
           await apiRequest('POST', '/api/auth/logout');
           set({ user: null });
           console.log('Logout complete');
@@ -133,8 +125,7 @@ export const useAuth = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      
-      // Server auth methods
+
       loginWithServer: async (username, password) => {
         set({ isLoading: true, error: null });
         try {
@@ -151,7 +142,7 @@ export const useAuth = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      
+
       signupWithServer: async (username, email, password, confirmPassword) => {
         set({ isLoading: true, error: null });
         try {
@@ -173,7 +164,7 @@ export const useAuth = create<AuthState>()(
           set({ isLoading: false });
         }
       },
-      
+
       fetchCurrentUser: async () => {
         set({ isLoading: true, error: null });
         try {
@@ -182,20 +173,31 @@ export const useAuth = create<AuthState>()(
           const userData = await response.json();
           console.log('Current user data received from server');
           set({ user: userData });
+
+          // 🔥 Wait for Firebase auth to load
+          const auth = getAuth();
+          onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+              const token = await currentUser.getIdToken();
+              console.log('🔥 Firebase ID Token:', token); // Log the Firebase ID Token
+            } else {
+              console.warn('No Firebase user signed in.');
+            }
+          });
+
         } catch (error: any) {
           console.log('Failed to fetch current user, clearing user data');
-          // Just clear user if there's an error
           set({ user: null });
         } finally {
           set({ isLoading: false });
         }
       },
-      
+
       clearError: () => set({ error: null })
     }),
     {
-      name: 'auth-storage', // name of the item in localStorage
-      partialize: (state) => ({ user: state.user }) // only persist the user
+      name: 'auth-storage',
+      partialize: (state) => ({ user: state.user })
     }
   )
 );

@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { useTexture } from '@react-three/drei';
+import React from 'react';
+import { useTexture, Cloud } from '@react-three/drei';
 import * as THREE from 'three';
 import { Environment } from '@/lib/stores/useEnvironment';
 
@@ -8,230 +8,156 @@ interface StreetProps {
 }
 
 export function Street({ environment }: StreetProps) {
-  // Textures
-  const asphaltTexture = useTexture('/textures/asphalt.png');
-  asphaltTexture.wrapS = asphaltTexture.wrapT = THREE.RepeatWrapping;
-  asphaltTexture.repeat.set(10, 30);
-  
-  // Objects from environment
+  const textures = {
+    asphalt: useTexture('/textures/asphalt.png'),
+    sidewalk: useTexture('/textures/sidewalk.jpg'),
+    brick: useTexture('/textures/brick_diffuse.jpg'),
+  };
+
+  Object.values(textures).forEach((tex) => {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(30, 30);
+  });
+
   const road = environment.objects.find(obj => obj.type === 'road');
   const sidewalks = environment.objects.filter(obj => obj.type === 'sidewalk');
   const buildings = environment.objects.filter(obj => obj.type === 'building');
-  const neonSigns = environment.objects.filter(obj => obj.type === 'neonSign');
-  const streetLights = environment.objects.filter(obj => obj.type === 'streetLight');
-  
-  // Refs
-  const roadRef = useRef<THREE.Mesh>(null);
-  const sidewalkRefs = useRef<(THREE.Mesh | null)[]>([]);
-  const buildingRefs = useRef<(THREE.Group | null)[]>([]);
-  const neonSignRefs = useRef<(THREE.Group | null)[]>([]);
-  const streetLightRefs = useRef<(THREE.Group | null)[]>([]);
-  
-  // Neon colors
-  const neonColors = ['#FF00FF', '#00FFFF', '#FF3333', '#33FF33', '#3333FF'];
+  const neonColors = ['#FF00FF', '#00FFFF', '#FF3333', '#33FF33', '#FFA500'];
 
   return (
-    <group>
-      {/* Ambient light - dark for cyberpunk feel */}
-      <ambientLight intensity={0.2} />
-      
-      {/* Moon/night light */}
+    <>
+      <color attach="background" args={['#05050a']} />
+      <fog attach="fog" args={['#05050a', 15, 120]} />
+
+      {/* Enhanced Lighting */}
+      <ambientLight intensity={0.5} />
       <directionalLight
-        position={[30, 50, -30]}
-        intensity={0.3}
-        color="#8888FF"
+        castShadow
+        position={[40, 60, -30]}
+        intensity={2}
+        color="#fef0dd"
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
       />
-      
+      <pointLight position={[0, 10, 0]} intensity={1} color="#33ccff" distance={100} />
+      <spotLight
+        position={[-30, 40, 30]}
+        angle={0.4}
+        penumbra={1}
+        intensity={1.2}
+        castShadow
+        color="#ff66cc"
+      />
+
+      {/* Subtle Night Cloud Glow */}
+      <Cloud scale={30} position={[0, 60, 0]} speed={0.1} opacity={0.15} color="#ffffff" />
+
       {/* Road */}
       {road && (
         <mesh
-          ref={roadRef}
           position={new THREE.Vector3(...road.position)}
-          scale={road.scale ? new THREE.Vector3(...road.scale) : new THREE.Vector3(1, 1, 1)}
-          rotation={road.rotation ? new THREE.Euler(...road.rotation) : undefined}
+          scale={new THREE.Vector3(...(road.scale || [3, 1, 50]))}
+          rotation={new THREE.Euler(...(road.rotation || [0, 0, 0]))}
           receiveShadow
         >
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial map={asphaltTexture} color="#333333" />
+          <boxGeometry args={[1, 0.1, 1]} />
+          <meshStandardMaterial
+            map={textures.asphalt}
+            metalness={0.7}
+            roughness={0.3}
+          />
         </mesh>
       )}
-      
+
+      {/* Glowing Stripe */}
+      {road && (
+        <mesh position={[road.position[0], road.position[1] + 0.06, road.position[2]]}>
+          <boxGeometry args={[0.1, 0.02, 40]} />
+          <meshStandardMaterial
+            color="#FFD700"
+            emissive="#FFD700"
+            emissiveIntensity={3}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+
       {/* Sidewalks */}
       {sidewalks.map((sidewalk, index) => (
         <mesh
-          key={sidewalk.id}
-          ref={el => sidewalkRefs.current[index] = el}
+          key={index}
           position={new THREE.Vector3(...sidewalk.position)}
-          scale={sidewalk.scale ? new THREE.Vector3(...sidewalk.scale) : new THREE.Vector3(1, 1, 1)}
-          rotation={sidewalk.rotation ? new THREE.Euler(...sidewalk.rotation) : undefined}
+          scale={new THREE.Vector3(...(sidewalk.scale || [2, 1, 50]))}
+          rotation={new THREE.Euler(...(sidewalk.rotation || [0, 0, 0]))}
           receiveShadow
         >
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="#555555" />
+          <boxGeometry args={[1, 0.1, 1]} />
+          <meshStandardMaterial
+            map={textures.sidewalk}
+            color="#cccccc"
+            roughness={0.5}
+          />
         </mesh>
       ))}
-      
+
       {/* Buildings */}
       {buildings.map((building, index) => (
         <group
-          key={building.id}
-          ref={el => buildingRefs.current[index] = el}
+          key={index}
           position={new THREE.Vector3(...building.position)}
-          scale={building.scale ? new THREE.Vector3(...building.scale) : new THREE.Vector3(1, 1, 1)}
-          rotation={building.rotation ? new THREE.Euler(...building.rotation) : undefined}
+          scale={new THREE.Vector3(...(building.scale || [1.5, 3, 1.5]))}
+          rotation={new THREE.Euler(...(building.rotation || [0, 0, 0]))}
         >
-          {/* Main building structure */}
           <mesh castShadow receiveShadow>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color="#222222" />
+            <boxGeometry args={[1, 2, 1]} />
+            <meshStandardMaterial
+              map={textures.brick}
+              color={neonColors[index % neonColors.length]}
+              metalness={0.4}
+              roughness={0.7}
+              emissive={neonColors[index % neonColors.length]}
+              emissiveIntensity={0.3}
+              toneMapped={false}
+            />
           </mesh>
-          
-          {/* Windows - randomly place on building faces */}
-          {Array.from({ length: 20 }).map((_, i) => {
-            const posX = (Math.random() - 0.5) * 0.8;
-            const posY = (Math.random() - 0.5) * 0.8;
+
+          {/* Random Glowing Windows */}
+          {Array.from({ length: 15 }).map((_, w) => {
+            const posX = (Math.random() - 0.5) * 0.9;
+            const posY = Math.random() * 2 - 1;
             const side = Math.floor(Math.random() * 4);
-            let position, rotation;
-            
+            let pos: [number, number, number] = [0, 0, 0];
             switch (side) {
-              case 0: // Front
-                position = [posX, posY, 0.501];
-                rotation = [0, 0, 0];
-                break;
-              case 1: // Back
-                position = [posX, posY, -0.501];
-                rotation = [0, Math.PI, 0];
-                break;
-              case 2: // Left
-                position = [-0.501, posY, posX];
-                rotation = [0, -Math.PI / 2, 0];
-                break;
-              case 3: // Right
-                position = [0.501, posY, posX];
-                rotation = [0, Math.PI / 2, 0];
-                break;
-              default:
-                position = [0, 0, 0];
-                rotation = [0, 0, 0];
+              case 0: pos = [posX, posY, 0.501]; break;
+              case 1: pos = [posX, posY, -0.501]; break;
+              case 2: pos = [-0.501, posY, posX]; break;
+              case 3: pos = [0.501, posY, posX]; break;
             }
-            
-            const isLit = Math.random() > 0.3;
-            
+
             return (
-              <mesh
-                key={i}
-                position={position}
-                rotation={rotation}
-                scale={[0.1, 0.1, 0.01]}
-              >
-                <boxGeometry args={[1, 1, 1]} />
+              <mesh key={w} position={pos}>
+                <planeGeometry args={[0.1, 0.1]} />
                 <meshStandardMaterial
-                  color={isLit ? "#FFFF77" : "#444444"}
-                  emissive={isLit ? "#FFFF77" : "#000000"}
-                  emissiveIntensity={isLit ? 1 : 0}
+                  emissive="#ffffcc"
+                  emissiveIntensity={Math.random() * 1.5 + 0.5}
+                  toneMapped={false}
                 />
               </mesh>
             );
           })}
-        </group>
-      ))}
-      
-      {/* Neon Signs */}
-      {neonSigns.map((sign, index) => {
-        const color = neonColors[index % neonColors.length];
-        
-        return (
-          <group
-            key={sign.id}
-            ref={el => neonSignRefs.current[index] = el}
-            position={new THREE.Vector3(...sign.position)}
-            rotation={sign.rotation ? new THREE.Euler(...sign.rotation) : undefined}
-          >
-            {/* Sign backing */}
-            <mesh castShadow>
-              <boxGeometry args={[2, 1, 0.1]} />
-              <meshStandardMaterial color="#111111" />
-            </mesh>
-            
-            {/* Neon text - simplified as glowing rectangles */}
-            <group position={[0, 0, 0.06]}>
-              {/* First line of "text" */}
-              <mesh>
-                <boxGeometry args={[1.5, 0.2, 0.05]} />
-                <meshStandardMaterial
-                  color={color}
-                  emissive={color}
-                  emissiveIntensity={2}
-                />
-              </mesh>
-              
-              {/* Second line of "text" */}
-              <mesh position={[0, -0.3, 0]}>
-                <boxGeometry args={[1, 0.15, 0.05]} />
-                <meshStandardMaterial
-                  color={color}
-                  emissive={color}
-                  emissiveIntensity={2}
-                />
-              </mesh>
-            </group>
-            
-            {/* Light emanating from sign */}
-            <pointLight
-              position={[0, 0, 0.3]}
-              color={color}
-              intensity={5}
-              distance={5}
+
+          {/* Neon Signboard */}
+          <mesh position={[0, 2, 0.6]}>
+            <planeGeometry args={[0.8, 0.3]} />
+            <meshStandardMaterial
+              color="#000"
+              emissive="#00FFFF"
+              emissiveIntensity={3}
+              toneMapped={false}
             />
-          </group>
-        );
-      })}
-      
-      {/* Street Lights */}
-      {streetLights.map((light, index) => (
-        <group
-          key={light.id}
-          ref={el => streetLightRefs.current[index] = el}
-          position={new THREE.Vector3(...light.position)}
-          rotation={light.rotation ? new THREE.Euler(...light.rotation) : undefined}
-        >
-          {/* Pole */}
-          <mesh castShadow>
-            <cylinderGeometry args={[0.05, 0.05, 3, 8]} />
-            <meshStandardMaterial color="#777777" />
           </mesh>
-          
-          {/* Light fixture */}
-          <group position={[0, 1.5, 0]}>
-            {/* Arm extending from pole */}
-            <mesh position={[0.5, 0, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
-              <cylinderGeometry args={[0.03, 0.03, 1, 8]} />
-              <meshStandardMaterial color="#777777" />
-            </mesh>
-            
-            {/* Light housing */}
-            <mesh position={[1, 0, 0]} castShadow>
-              <boxGeometry args={[0.2, 0.1, 0.2]} />
-              <meshStandardMaterial color="#333333" />
-            </mesh>
-            
-            {/* Light */}
-            <pointLight
-              position={[1, -0.1, 0]}
-              color="#77BBFF"
-              intensity={2}
-              distance={10}
-              castShadow
-            />
-          </group>
         </group>
       ))}
-      
-      {/* Sky */}
-      <mesh position={[0, 30, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[200, 200]} />
-        <meshBasicMaterial color="#000008" side={THREE.DoubleSide} />
-      </mesh>
-    </group>
+    </>
   );
 }
